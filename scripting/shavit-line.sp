@@ -1,14 +1,13 @@
-#pragma semicolon 1
-#pragma newdecls required
-
 #include <clientprefs>
 #include <closestpos>
 #include <sdktools>
 #include <sdkhooks>
 #include <dhooks>
-#include <shavit/core>
-#include <shavit/replay-playback>
+#include <shavit>
 #include <sourcemod>
+
+#pragma semicolon 1
+#pragma newdecls required
 
 #define COLORS_NUMBER 9
 
@@ -90,6 +89,11 @@ enum OSType
 	OSLinux = 2
 };
 
+stylestrings_t g_sStyleStrings[STYLE_LIMIT];
+
+bool g_bLate = false;
+int g_iStyles;
+
 OSType gOSType;
 EngineVersion gEngineVer;
 
@@ -136,19 +140,34 @@ public void OnPluginStart() {
 		Shavit_OnReplaysLoaded();
 	}
 
-	for (int i = 1; i <= MaxClients; i++) {
-		if (!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i)) {
-			continue;
-		}
+	if(g_bLate)
+	{
+		for (int i = 1; i <= MaxClients; i++) {
+			if (!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i)) {
+				continue;
+			}
 
-		if (shavitLoaded) {
-			UpdateTrackStyle(i);
-		}
+			if (shavitLoaded) {
+				UpdateTrackStyle(i);
+			}
 
-		if (AreClientCookiesCached(i)) {
-			OnClientCookiesCached(i);
+			if (AreClientCookiesCached(i)) {
+				OnClientCookiesCached(i);
+			}
 		}
+		Shavit_OnStyleConfigLoaded(-1);
 	}
+}
+	
+public void Shavit_OnStyleConfigLoaded(int styles)
+{
+	if(styles == -1)
+		styles = Shavit_GetStyleCount();
+ 
+	for(int i = 0; i < styles; i++)
+		Shavit_GetStyleStrings(i, sStyleName, g_sStyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
+ 
+	g_iStyles = styles;
 }
 
 public void OnPluginEnd() {
@@ -159,8 +178,8 @@ public void OnPluginEnd() {
 }
 
 public void OnMapEnd() {
-	for (int i  = 0; i <= STYLE_LIMIT; i++) {
-		for (int j = 0; j <= TRACKS_SIZE; j++) {
+	for (int i  = 0; i < STYLE_LIMIT; i++) {
+		for (int j = 0; j < TRACKS_SIZE; j++) {
 			delete g_hClosestPos[i][j];
 			delete g_hReplayFrames[i][j];
 		}
@@ -211,7 +230,7 @@ public void Shavit_OnReplaysLoaded() {
 public void LoadReplay(int style, int track) {
 	delete g_hClosestPos[style][track];
 	delete g_hReplayFrames[style][track];
-	ArrayList list = Shavit_GetReplayFrames(style, track, true);
+	ArrayList list = Shavit_GetReplayFrames(style, track);
 	g_hReplayFrames[style][track] = new ArrayList(sizeof(frame_t));
 
 	if (!list) {
@@ -262,13 +281,12 @@ Action LineCmd(int client, int args) {
 
 void ShowToggleMenu(int client) {
 	Menu menu = CreateMenu(LinesMenu_Callback);
-	SetMenuTitle(menu, "｢ Shavit Line Advanced ｣");
-	AddMenuItem(menu, "linetoggle", (g_iIntCache[client][ENABLED]) ? "[x] Enabled":"[ ] Enabled");
-	AddMenuItem(menu, "flatmode", (g_iIntCache[client][FLATMODE]) ? "[x] Flat Mode":"[ ] Flat Mode");
-
-	char sMessage[256];
-	Shavit_GetStyleStrings(g_iIntCache[client][STYLE_IDX], sStyleName, sMessage, sizeof(sMessage));
-	Format(sMessage, sizeof(sMessage), "Style: %s", sMessage);
+	SetMenuTitle(menu, "Replay Line\n ");
+	AddMenuItem(menu, "linetoggle", (g_iIntCache[client][ENABLED]) ? "[X] Enabled":"[  ] Enabled");
+	AddMenuItem(menu, "flatmode", (g_iIntCache[client][FLATMODE]) ? "[X] Flat Mode":"[  ] Flat Mode");
+	
+	char sMessage[128];
+	Format(sMessage, sizeof(sMessage), "Style: %s", g_sStyleStrings[g_iIntCache[client][STYLE_IDX]].sStyleName);
 	AddMenuItem(menu, "style", sMessage);
 	AddMenuItem(menu, "colors", "Colors");
 	DisplayMenu(menu, client, MENU_TIME_FOREVER);
@@ -298,16 +316,8 @@ public int LinesMenu_Callback (Menu menu, MenuAction action, int client, int opt
 			PushCookies(client);
 		}
 		else if (StrEqual(info, "style")) {
-			int style = g_iIntCache[client][STYLE_IDX] + 1;
-			for(int i = style; i < STYLE_LIMIT; i++) {
-				if (g_hReplayFrames[i][g_iIntCache[client][TRACK_IDX]].Length > 0) {
-					style = i;
-					break;
-				} else if (i == STYLE_LIMIT - 1) {
-					style = 0;
-				}
-			}
-			g_iIntCache[client][STYLE_IDX] = style;
+			SelectStyleMenu(client);
+			return 0;
 		}
 		else if (StrEqual(info, "colors")) {
 			ShowColorOptionsMenu(client);
@@ -321,16 +331,73 @@ public int LinesMenu_Callback (Menu menu, MenuAction action, int client, int opt
 	return 0;
 }
 
+void SelectStyleMenu(int client)
+{
+	Menu menu = new Menu(SelectStyleMenuHandler);
+	SetMenuTitle(menu, "Select Line Style\n ");
+ 
+	for(int j = 0; j < g_iStyles; j++)
+	{
+		int[] iOrderedStyles = new int[g_iStyles];
+		Shavit_GetOrderedStyles(iOrderedStyles, g_iStyles);
+		int iStyle = iOrderedStyles[j];
+		char sStyleID[8];
+		IntToString(iStyle, sStyleID, sizeof(sStyleID));
+		
+		
+		menu.AddItem(sStyleID, g_sStyleStrings[iStyle].sStyleName);
+	}
+
+	menu.ExitBackButton = true;
+	menu.ExitButton = true;
+	DisplayMenu(menu, client, MENU_TIME_FOREVER);
+}
+ 
+public int SelectStyleMenuHandler(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sStyleID[8];
+		menu.GetItem(param2, sStyleID, 8);
+		int iStyleID = StringToInt(sStyleID);
+ 
+		if(iStyleID > -1 && iStyleID <= g_iStyles)
+		{
+			g_iIntCache[param1][STYLE_IDX] = iStyleID;
+			ShowToggleMenu(param1);
+		}
+		else
+		{
+			g_iIntCache[param1][STYLE_IDX] = 0;
+			Shavit_PrintToChat(param1, "Invalid style, please try again");
+			SelectStyleMenu(param1);
+			return Plugin_Handled;
+		}
+	}
+	else if(action == MenuAction_Cancel)
+	{
+		if(param2 == MenuCancel_ExitBack)
+		{
+			ShowToggleMenu(param1);
+		}
+	}
+	return Plugin_Handled;
+}
+
 void ShowColorOptionsMenu(int client) {
 	Menu menu = CreateMenu(LinesColors_Callback);
 	SetMenuTitle(menu, "Colors\n\n");
 
 	char sMessage[256];
-	Format(sMessage, sizeof(sMessage), "< Editing: %s >", g_sElementStrings[g_iIntCache[client][EDIT_ELEMENT]]);
+	Format(sMessage, sizeof(sMessage), "Editing: %s", g_sElementStrings[g_iIntCache[client][EDIT_ELEMENT]]);
 	AddMenuItem(menu, "editbox", sMessage);
 
-	Format(sMessage, sizeof(sMessage), "Color: %s", g_sColorStrs[g_iIntCache[client][g_iIntCache[client][EDIT_ELEMENT]]]);
+	Format(sMessage, sizeof(sMessage), "Color: %s\n ", g_sColorStrs[g_iIntCache[client][g_iIntCache[client][EDIT_ELEMENT]]]);
 	AddMenuItem(menu, "editcolor", sMessage);
+
+	AddMenuItem(menu, "reset", "Reset Defaults");
+	
+	menu.ExitBackButton = true;
 	DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
 
@@ -358,7 +425,18 @@ public int LinesColors_Callback(Menu menu, MenuAction action, int client, int op
 			g_iIntCache[client][g_iIntCache[client][EDIT_ELEMENT]] = g_iIntCache[client][EDIT_COLOR];
 			PushCookies(client);
 		}
+		else if (StrEqual(info, "reset")) {
+			
+			PushDefaultColors(client);
+		}
 		ShowColorOptionsMenu(client);
+	}
+	else if(action == MenuAction_Cancel)
+	{
+		if(option == MenuCancel_ExitBack)
+		{
+			ShowToggleMenu(client);
+		}
 	}
 	else if (action == MenuAction_End) {
 		delete menu;
@@ -367,13 +445,20 @@ public int LinesColors_Callback(Menu menu, MenuAction action, int client, int op
 }
 
 void PushDefaultSettings(int client) {
-	g_iIntCache[client][ENABLED] = 1;
+	g_iIntCache[client][ENABLED] = 0;
 	g_iIntCache[client][FLATMODE] = 0;
-	g_iIntCache[client][DUCKCOLOR] = Red;
+	g_iIntCache[client][DUCKCOLOR] = Purple;
 	g_iIntCache[client][NODUCKCOLOR] = Pink;
 	g_iIntCache[client][LINECOLOR] = White;
 	PushCookies(client);
 	UpdateTrackStyle(client);
+}
+
+void PushDefaultColors(int client) {
+	g_iIntCache[client][DUCKCOLOR] = Purple;
+	g_iIntCache[client][NODUCKCOLOR] = Pink;
+	g_iIntCache[client][LINECOLOR] = White;
+	PushCookies(client);
 }
 
 void PushCookies(int client) {
