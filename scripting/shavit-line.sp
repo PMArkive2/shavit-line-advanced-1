@@ -11,8 +11,9 @@
 
 #define COLORS_NUMBER 9
 
-enum { //enum for colors same indexes as colors below
-	Red, //for all colors structs, first 5 idxs are default, dont reorder them
+enum
+{
+	Red,
 	Orange,
 	Green,
 	Cyan,
@@ -23,7 +24,8 @@ enum { //enum for colors same indexes as colors below
 	Pink
 };
 
-char g_sColorStrs[][] = { //strings for colors at same indexes as colors below
+char g_sColorStrs[][] =
+{
 	"Red",
 	"Orange",
 	"Green",
@@ -35,7 +37,8 @@ char g_sColorStrs[][] = { //strings for colors at same indexes as colors below
 	"Pink"
 };
 
-int g_iColorInts[][] = { //general colors
+int g_iColorInts[][] =
+{
 	{255, 0, 0},
 	{255, 165, 0},
 	{0, 255, 0},
@@ -70,13 +73,15 @@ int g_iColorInts[][] = { //general colors
 
 #define ELEMENT_NUMBER 3
 
-char g_sElementStrings[][] = {
+char g_sElementStrings[][] =
+{
 	"Duck Box",
 	"No Duck Box",
 	"Line"
 };
 
-enum {
+enum
+{
 	DuckBox,
 	NoDuckBox,
 	Line
@@ -107,15 +112,17 @@ Cookie g_hSettings[SETTINGS_NUMBER];
 int gTELimitData;
 Address gTELimitAddress;
 
-public Plugin myinfo = {
-	name = "shavit-line-advanced",
-	author = "enimmy",
+public Plugin myinfo =
+{
+	name = "[shavit] Line",
+	author = "enimmy, olivia",
 	description = "Shows the WR route with a path on the ground. Use the command sm_line to toggle.",
 	version = "0.3",
-	url = "https://github.com/enimmy/shavit-line-advanced"
+	url = "https://github.com/KawaiiClan/shavit-line-advanced"
 };
 
-public void OnPluginStart() {
+public void OnPluginStart()
+{
 	g_hSettings[DUCKCOLOR] = new Cookie("shavit_line_duckcolor", "", CookieAccess_Private);
 	g_hSettings[NODUCKCOLOR] = new Cookie("shavit_line_noduckcolor", "", CookieAccess_Private);
 	g_hSettings[LINECOLOR] = new Cookie("shavit_line_linecolor", "", CookieAccess_Private);
@@ -126,39 +133,30 @@ public void OnPluginStart() {
 
 	GameData gconf = new GameData("shavit-line.games");
 	gOSType = view_as<OSType>(GameConfGetOffset(gconf, "OSType"));
-	if (gOSType == OSUnknown){
+	if(gOSType == OSUnknown)
 		SetFailState("Failed to get OS type. Make sure gamedata file is in gamedata folder, and you are using windows or linux. Your Current OS Type is %d", gOSType);
-	}
 
 	gEngineVer = GetEngineVersion();
-	if (gEngineVer == Engine_CSS)
+	if(gEngineVer == Engine_CSS)
 		BytePatchTELimit(gconf);
 
-	bool shavitLoaded = LibraryExists("shavit-replay-playback");
-
-	if (shavitLoaded) {
+	if(LibraryExists("shavit-replay-playback"))
 		Shavit_OnReplaysLoaded();
-	}
 
 	if(g_bLate)
 	{
-		for (int i = 1; i <= MaxClients; i++) {
-			if (!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i)) {
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if(!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i))
 				continue;
-			}
 
-			if (shavitLoaded) {
-				UpdateTrackStyle(i);
-			}
-
-			if (AreClientCookiesCached(i)) {
+			if(AreClientCookiesCached(i))
 				OnClientCookiesCached(i);
-			}
 		}
 		Shavit_OnStyleConfigLoaded(-1);
 	}
 }
-	
+
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
 	if(styles == -1)
@@ -166,20 +164,24 @@ public void Shavit_OnStyleConfigLoaded(int styles)
  
 	for(int i = 0; i < styles; i++)
 		Shavit_GetStyleStrings(i, sStyleName, g_sStyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
- 
+
 	g_iStyles = styles;
 }
 
-public void OnPluginEnd() {
+public void OnPluginEnd()
+{
 	if (gTELimitAddress == Address_Null)
 		return;
-	
+
 	StoreToAddress(gTELimitAddress, gTELimitData, NumberType_Int8);
 }
 
-public void OnMapEnd() {
-	for (int i  = 0; i < STYLE_LIMIT; i++) {
-		for (int j = 0; j < TRACKS_SIZE; j++) {
+public void OnMapEnd()
+{
+	for (int i  = 0; i < STYLE_LIMIT; i++)
+	{
+		for (int j = 0; j < TRACKS_SIZE; j++)
+		{
 			delete g_hClosestPos[i][j];
 			delete g_hReplayFrames[i][j];
 		}
@@ -188,103 +190,102 @@ public void OnMapEnd() {
 
 stock void BytePatchTELimit(Handle gconf)
 {
-	//TELimit
 	gTELimitAddress = GameConfGetAddress(gconf, "TELimit");
-	if (gTELimitAddress == Address_Null){
-		SetFailState("Failed to get addres of \"TELimit\".");
-	}
-	
+	if (gTELimitAddress == Address_Null)
+		SetFailState("Failed to get address of \"TELimit\".");
+
 	gTELimitData = LoadFromAddress(gTELimitAddress, NumberType_Int8);
-	
+
 	if (gOSType == OSWindows)
 		StoreToAddress(gTELimitAddress, 0xFF, NumberType_Int8);
 	else if (gOSType == OSLinux)
 		StoreToAddress(gTELimitAddress, 0x02, NumberType_Int8);
 	else
-		SetFailState("Failed to store addres of \"TELimit\".");
+		SetFailState("Failed to store address of \"TELimit\".");
 }
 
-public void OnClientCookiesCached(int client) {
+public void OnClientCookiesCached(int client)
+{
 	char strCookie[256];
-
-	for(int i = 0; i < SETTINGS_NUMBER; i++) {
+	for(int i = 0; i < SETTINGS_NUMBER; i++)
+	{
 		GetClientCookie(client, g_hSettings[i], strCookie, sizeof(strCookie));
-		if (strCookie[0] == '\0') {
+		if(strCookie[0] == '\0')
+		{
 			PushDefaultSettings(client);
 			break;
 		}
 		g_iIntCache[client][i] = StringToInt(strCookie);
 	}
-
 	UpdateTrackStyle(client);
 }
 
-public void Shavit_OnReplaysLoaded() {
-	for(int style = 0; style < STYLE_LIMIT; style++) {
-		for(int track = 0; track < TRACKS_SIZE; track++) {
+public void Shavit_OnReplaysLoaded()
+{
+	for(int style = 0; style < STYLE_LIMIT; style++)
+		for(int track = 0; track < TRACKS_SIZE; track++)
 			LoadReplay(style, track);
-		}
-	}
 }
 
-public void LoadReplay(int style, int track) {
+public void LoadReplay(int style, int track)
+{
 	delete g_hClosestPos[style][track];
 	delete g_hReplayFrames[style][track];
 	ArrayList list = Shavit_GetReplayFrames(style, track);
 	g_hReplayFrames[style][track] = new ArrayList(sizeof(frame_t));
 
-	if (!list) {
+	if(!list)
 		return;
-	}
 
 	frame_t aFrame;
 	bool hitGround = false;
 
-	for(int i = 0; i < list.Length; i++) {
+	for(int i = 0; i < list.Length; i++)
+	{
 		list.GetArray(i, aFrame, sizeof(frame_t));
-		if (aFrame.flags & FL_ONGROUND && !hitGround) {
+		if (aFrame.flags & FL_ONGROUND && !hitGround)
 			hitGround = true;
-		}
-		else {
+		else
 			hitGround = false;
-		}
 
-		if (hitGround || i % SKIPFRAMES == 0) {
+		if (hitGround || i % SKIPFRAMES == 0)
 			g_hReplayFrames[style][track].PushArray(aFrame);
-		}
 	}
 
 	g_hClosestPos[style][track] = new ClosestPos(g_hReplayFrames[style][track], 0, 0, Shavit_GetReplayFrameCount(style, track));
 	delete list;
 }
 
-public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual) {
+public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
+{
 	g_iIntCache[client][TRACK_IDX] = track;
 	g_iIntCache[client][STYLE_IDX] = newstyle;
 }
 
-public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track) {
+public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track)
+{
     LoadReplay(style, track);
 }
 
-public void OnConfigsExecuted() {
+public void OnConfigsExecuted()
+{
 	sprite = PrecacheModel("sprites/laserbeam.vmt");
 }
 
-Action LineCmd(int client, int args) {
-	if (!IsValidClient(client)) {
-		return Plugin_Handled;
-	}
-	ShowToggleMenu(client);
+Action LineCmd(int client, int args)
+{
+	if(IsValidClient(client))
+		ShowToggleMenu(client);
 	return Plugin_Handled;
 }
 
-void ShowToggleMenu(int client) {
+void ShowToggleMenu(int client)
+{
 	Menu menu = CreateMenu(LinesMenu_Callback);
-	SetMenuTitle(menu, "Replay Line\n ");
-	AddMenuItem(menu, "linetoggle", (g_iIntCache[client][ENABLED]) ? "[X] Enabled":"[  ] Enabled");
+	SetMenuTitle(menu, "Line Settings\n ");
+	AddMenuItem(menu, "enabled", (g_iIntCache[client][ENABLED]) ? "[X] Enabled":"[  ] Enabled");
 	AddMenuItem(menu, "flatmode", (g_iIntCache[client][FLATMODE]) ? "[X] Flat Mode":"[  ] Flat Mode");
-	
+
 	char sMessage[128];
 	Format(sMessage, sizeof(sMessage), "Style: %s", g_sStyleStrings[g_iIntCache[client][STYLE_IDX]].sStyleName);
 	AddMenuItem(menu, "style", sMessage);
@@ -292,59 +293,47 @@ void ShowToggleMenu(int client) {
 	DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
 
-
-public int LinesMenu_Callback (Menu menu, MenuAction action, int client, int option) {
-	if (action == MenuAction_Select) {
+public int LinesMenu_Callback (Menu menu, MenuAction action, int client, int option)
+{
+	if(action == MenuAction_Select)
+	{
 		char info[32];
 		GetMenuItem(menu, option, info, sizeof(info));
 
-		if (StrEqual(info, "linetoggle")) {
+		if(StrEqual(info, "enabled"))
 			g_iIntCache[client][ENABLED] = !g_iIntCache[client][ENABLED];
-
-			if (g_iIntCache[client][ENABLED]) {
-				Shavit_PrintToChat(client, "Explanation in Console");
-				PrintToConsole(client, "The boxes on the ground show the jump locations of the WR route on this servers replay for the style you are on.");
-				PrintToConsole(client, "By default White Box = Uncrouched Jump | Pink Box = Crouched Jump");
-				PrintToConsole(client, "You can change the colors under settings.");
-			}
-
-			PushCookies(client);
-		}
-		else if (StrEqual(info, "flatmode")) {
+		else if(StrEqual(info, "flatmode"))
 			g_iIntCache[client][FLATMODE] = !g_iIntCache[client][FLATMODE];
-
-			PushCookies(client);
-		}
-		else if (StrEqual(info, "style")) {
+		else if(StrEqual(info, "style"))
+		{
 			SelectStyleMenu(client);
 			return 0;
 		}
-		else if (StrEqual(info, "colors")) {
+		else if(StrEqual(info, "colors")) {
 			ShowColorOptionsMenu(client);
 			return 0;
 		}
+		PushCookies(client);
 		ShowToggleMenu(client);
 	}
-	else if (action == MenuAction_End) {
+	else if(action == MenuAction_Cancel)
 		delete menu;
-	}
 	return 0;
 }
 
 void SelectStyleMenu(int client)
 {
 	Menu menu = new Menu(SelectStyleMenuHandler);
-	SetMenuTitle(menu, "Select Line Style\n ");
- 
+	SetMenuTitle(menu, "Line Style\n ");
+
+	int[] iOrderedStyles = new int[g_iStyles];
+	Shavit_GetOrderedStyles(iOrderedStyles, g_iStyles);
+
 	for(int j = 0; j < g_iStyles; j++)
 	{
-		int[] iOrderedStyles = new int[g_iStyles];
-		Shavit_GetOrderedStyles(iOrderedStyles, g_iStyles);
 		int iStyle = iOrderedStyles[j];
 		char sStyleID[8];
 		IntToString(iStyle, sStyleID, sizeof(sStyleID));
-		
-		
 		menu.AddItem(sStyleID, g_sStyleStrings[iStyle].sStyleName);
 	}
 
@@ -352,16 +341,16 @@ void SelectStyleMenu(int client)
 	menu.ExitButton = true;
 	DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
- 
+
 public int SelectStyleMenuHandler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char sStyleID[8];
-		menu.GetItem(param2, sStyleID, 8);
+		menu.GetItem(param2, sStyleID, sizeof(sStyleID));
 		int iStyleID = StringToInt(sStyleID);
- 
-		if(iStyleID > -1 && iStyleID <= g_iStyles)
+
+		if(0 <= iStyleID <= g_iStyles)
 		{
 			g_iIntCache[param1][STYLE_IDX] = iStyleID;
 			ShowToggleMenu(param1);
@@ -371,22 +360,19 @@ public int SelectStyleMenuHandler(Menu menu, MenuAction action, int param1, int 
 			g_iIntCache[param1][STYLE_IDX] = 0;
 			Shavit_PrintToChat(param1, "Invalid style, please try again");
 			SelectStyleMenu(param1);
-			return Plugin_Handled;
 		}
 	}
 	else if(action == MenuAction_Cancel)
-	{
 		if(param2 == MenuCancel_ExitBack)
-		{
 			ShowToggleMenu(param1);
-		}
-	}
+
 	return Plugin_Handled;
 }
 
-void ShowColorOptionsMenu(int client) {
-	Menu menu = CreateMenu(LinesColors_Callback);
-	SetMenuTitle(menu, "Colors\n\n");
+void ShowColorOptionsMenu(int client)
+{
+	Panel hPanel = CreateMenu(LinesColors_Callback);
+	hPanel.SetTitle("Line Colors\n ");
 
 	char sMessage[256];
 	Format(sMessage, sizeof(sMessage), "Editing: %s", g_sElementStrings[g_iIntCache[client][EDIT_ELEMENT]]);
@@ -401,92 +387,85 @@ void ShowColorOptionsMenu(int client) {
 	DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
 
-public int LinesColors_Callback(Menu menu, MenuAction action, int client, int option) {
-	if (action == MenuAction_Select) {
+public int LinesColors_Callback(Menu menu, MenuAction action, int client, int option)
+{
+	if(action == MenuAction_Select)
+	{
 		char info[32];
 		GetMenuItem(menu, option, info, sizeof(info));
 
-		if (StrEqual(info, "editbox")) {
+		if(StrEqual(info, "editbox"))
+		{
 			g_iIntCache[client][EDIT_ELEMENT]++;
 
-			if (g_iIntCache[client][EDIT_ELEMENT] >= ELEMENT_NUMBER)
-			{
+			if(g_iIntCache[client][EDIT_ELEMENT] >= ELEMENT_NUMBER)
 				g_iIntCache[client][EDIT_ELEMENT] = 0;
-			}
 		}
-		else if (StrEqual(info, "editcolor")) {
+		else if(StrEqual(info, "editcolor"))
+		{
 			g_iIntCache[client][EDIT_COLOR]++;
 
-			if (g_iIntCache[client][EDIT_COLOR] >= COLORS_NUMBER)
-			{
+			if(g_iIntCache[client][EDIT_COLOR] >= sizeof(g_sColorStrs))
 				g_iIntCache[client][EDIT_COLOR] = 0;
-			}
 
 			g_iIntCache[client][g_iIntCache[client][EDIT_ELEMENT]] = g_iIntCache[client][EDIT_COLOR];
 			PushCookies(client);
 		}
-		else if (StrEqual(info, "reset")) {
-			
+		else if(StrEqual(info, "reset"))
 			PushDefaultColors(client);
-		}
+
 		ShowColorOptionsMenu(client);
 	}
 	else if(action == MenuAction_Cancel)
-	{
 		if(option == MenuCancel_ExitBack)
-		{
 			ShowToggleMenu(client);
-		}
-	}
-	else if (action == MenuAction_End) {
-		delete menu;
-	}
+
 	return 0;
 }
 
-void PushDefaultSettings(int client) {
+void PushDefaultSettings(int client)
+{
 	g_iIntCache[client][ENABLED] = 0;
 	g_iIntCache[client][FLATMODE] = 0;
 	g_iIntCache[client][DUCKCOLOR] = Purple;
 	g_iIntCache[client][NODUCKCOLOR] = Pink;
 	g_iIntCache[client][LINECOLOR] = White;
-	PushCookies(client);
 	UpdateTrackStyle(client);
 }
 
-void PushDefaultColors(int client) {
+void PushDefaultColors(int client)
+{
 	g_iIntCache[client][DUCKCOLOR] = Purple;
 	g_iIntCache[client][NODUCKCOLOR] = Pink;
 	g_iIntCache[client][LINECOLOR] = White;
 	PushCookies(client);
 }
 
-void PushCookies(int client) {
-	for(int i = 0; i < SETTINGS_NUMBER; i++) {
+void PushCookies(int client)
+{
+	for(int i = 0; i < SETTINGS_NUMBER; i++)
 		SetCookie(client, g_hSettings[i], g_iIntCache[client][i]);
-	}
 }
 
-void SetCookie(int client, Cookie hCookie, int n) {
+void SetCookie(int client, Cookie hCookie, int n)
+{
 	char strCookie[64];
 	IntToString(n, strCookie, sizeof(strCookie));
 	SetClientCookie(client, hCookie, strCookie);
 }
 
-public Action OnPlayerRunCmd(int client) {
-	if (!IsValidClient(client) || !g_iIntCache[client][ENABLED]) {
+public Action OnPlayerRunCmd(int client)
+{
+	if(!IsValidClient(client) || !g_iIntCache[client][ENABLED])
 		return Plugin_Continue;
-	}
 
-	if ((++g_iIntCache[client][CMD_NUM] % 60) != 0) {
+	if((++g_iIntCache[client][CMD_NUM] % 60) != 0)
 		return Plugin_Continue;
-	}
-
 	g_iIntCache[client][CMD_NUM] = 0;
+
 	ArrayList list = g_hReplayFrames[g_iIntCache[client][STYLE_IDX]][g_iIntCache[client][TRACK_IDX]];
-	if (list.Length == 0) {
+	if(list.Length == 0)
 		return Plugin_Continue;
-	}
 
 	float pos[3];
 	GetClientAbsOrigin(client, pos);
@@ -498,21 +477,23 @@ public Action OnPlayerRunCmd(int client) {
 	list.GetArray(closeframe, aFrame, sizeof(frame_t));
 	pos = aFrame.pos;
 	bool firstFlatDraw = true;
-	for(int i = closeframe; i < endframe; i++) {
+	for(int i = closeframe; i < endframe; i++)
+	{
 		list.GetArray(i, aFrame, 8);
 		aFrame.pos[2] += 2.5;
-		if (aFrame.flags & FL_ONGROUND && !(flags & FL_ONGROUND)) {
+		if(aFrame.flags & FL_ONGROUND && !(flags & FL_ONGROUND))
+		{
 			DrawBox(client, aFrame.pos, g_iColorInts[g_iIntCache[client][(flags & FL_DUCKING) ? DUCKCOLOR:NODUCKCOLOR]]);
 
-			if (!firstFlatDraw) {
+			if(!firstFlatDraw)
 				DrawBeam(client, pos, aFrame.pos, TE_TIME, TE_MIN, TE_MAX, g_iColorInts[g_iIntCache[client][LINECOLOR]], 0.0, 0);
-			}
-
 			firstFlatDraw = false;
+
 			pos = aFrame.pos;
 		}
 
-		if (!g_iIntCache[client][FLATMODE]) {
+		if(!g_iIntCache[client][FLATMODE])
+		{
 			DrawBeam(client, pos, aFrame.pos, TE_TIME, TE_MIN, TE_MAX, g_iColorInts[g_iIntCache[client][LINECOLOR]], 0.0, 0);
 			pos = aFrame.pos;
 		}
@@ -522,16 +503,19 @@ public Action OnPlayerRunCmd(int client) {
 	return Plugin_Continue;
 }
 
-float box_offset[4][2] = {
+float box_offset[4][2] =
+{
 	{-10.0, 10.0},
 	{10.0, 10.0},
 	{-10.0, -10.0},
 	{10.0, -10.0},
 };
 
-void DrawBox(int client, float pos[3], int color[3]) {
+void DrawBox(int client, float pos[3], int color[3])
+{
 	float square[4][3];
-	for (int z = 0; z < 4; z++) {
+	for(int z = 0; z < 4; z++)
+	{
 		square[z][0] = pos[0] + (box_offset[z][0]);
 		square[z][1] = pos[1] + (box_offset[z][1]);
 		square[z][2] = pos[2];
@@ -543,27 +527,30 @@ void DrawBox(int client, float pos[3], int color[3]) {
 	DrawBeam(client, square[1], square[3], TE_TIME, TE_MIN, TE_MAX, color, 0.0, 0);
 }
 
-void DrawBeam(int client, float startvec[3], float endvec[3], float life, float width, float endwidth, int color[3], float amplitude, int speed) {
-
+void DrawBeam(int client, float startvec[3], float endvec[3], float life, float width, float endwidth, int color[3], float amplitude, int speed)
+{
 	int sendColor[4];
-	for(int i = 0; i < 3; i++) {
+	for(int i = 0; i < 3; i++)
 		sendColor[i] = color[i];
-	}
+
 	sendColor[3] = 255;
 
 	TE_SetupBeamPoints(startvec, endvec, sprite, 0, 0, 66, life, width, endwidth, 0, amplitude, sendColor, speed);
 	TE_SendToClient(client);
 }
 
-int min(int a, int b) {
+int min(int a, int b)
+{
 	return a < b ? a : b;
 }
 
-int max(int a, int b) {
+int max(int a, int b)
+{
 	return a > b ? a : b;
 }
 
-void UpdateTrackStyle(int client) {
+void UpdateTrackStyle(int client)
+{
 	g_iIntCache[client][TRACK_IDX] = Shavit_GetClientTrack(client);
 	g_iIntCache[client][STYLE_IDX] = Shavit_GetBhopStyle(client);
 }
