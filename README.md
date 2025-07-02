@@ -1,3 +1,3 @@
 # shavit-line-advanced
  
- dont use the other version, its shit
+ See the WR path with !line configuration menu
