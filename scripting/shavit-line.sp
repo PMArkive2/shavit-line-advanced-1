@@ -261,12 +261,15 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 	{
 		g_iIntCache[client][STYLE_IDX] = newstyle;
 	}
-	else if (Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints") && Shavit_GetReplayFrameCount(Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_onstart"), track) > 0 || Shavit_GetReplayFrameCount(Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_ontele"), track) > 0)
+	else if (Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints"))
 	{
-		if (Shavit_GetReplayFrameCount(Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_onstart"), track) > 0)
-			g_iIntCache[client][STYLE_IDX] = Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_onstart");
-		else
-			g_iIntCache[client][STYLE_IDX] = Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_ontele");
+		if(Shavit_GetReplayFrameCount(Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_onstart"), track) > 0 || Shavit_GetReplayFrameCount(Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_ontele"), track) > 0)
+		{
+			if (Shavit_GetReplayFrameCount(Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_onstart"), track) > 0)
+				g_iIntCache[client][STYLE_IDX] = Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_onstart");
+			else
+				g_iIntCache[client][STYLE_IDX] = Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_ontele");
+		}
 	}
 	else
 	{
