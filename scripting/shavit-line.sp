@@ -256,10 +256,23 @@ public void LoadReplay(int style, int track)
 	delete list;
 }
 
-public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
-{
+public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual) {
+	if (Shavit_GetReplayFrameCount(newstyle, track) > 0)
+	{
+		g_iIntCache[client][STYLE_IDX] = newstyle;
+	}
+	else if (Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints") && Shavit_GetReplayFrameCount(Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_onstart"), track) > 0 || Shavit_GetReplayFrameCount(Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_ontele"), track) > 0)
+	{
+		if (Shavit_GetReplayFrameCount(Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_onstart"), track) > 0)
+			g_iIntCache[client][STYLE_IDX] = Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_onstart");
+		else
+			g_iIntCache[client][STYLE_IDX] = Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_ontele");
+	}
+	else
+	{
+		g_iIntCache[client][STYLE_IDX] = 0;
+	}
 	g_iIntCache[client][TRACK_IDX] = track;
-	g_iIntCache[client][STYLE_IDX] = newstyle;
 }
 
 public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track)
