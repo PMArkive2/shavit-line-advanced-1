@@ -384,8 +384,8 @@ public int SelectStyleMenuHandler(Menu menu, MenuAction action, int param1, int 
 
 void ShowColorOptionsMenu(int client)
 {
-	Panel hPanel = CreateMenu(LinesColors_Callback);
-	hPanel.SetTitle("Line Colors\n ");
+	Menu menu = CreateMenu(LinesColors_Callback);
+	SetMenuTitle(menu, "Line Colors\n ");
 
 	char sMessage[256];
 	Format(sMessage, sizeof(sMessage), "Editing: %s", g_sElementStrings[g_iIntCache[client][EDIT_ELEMENT]]);
