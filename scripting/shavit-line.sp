@@ -258,25 +258,34 @@ public void LoadReplay(int style, int track)
 
 public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
 {
-	if (Shavit_GetReplayFrameCount(newstyle, track) > 0)
-		g_iIntCache[client][STYLE_IDX] = newstyle;
+	g_iIntCache[client][TRACK_IDX] = track;
 
+	if(Shavit_GetReplayFrameCount(newstyle, track) > 0)
+	{
+		g_iIntCache[client][STYLE_IDX] = newstyle;
+		return;
+	}
 	else if(Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints"))
 	{
 		int startStyle = Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_onstart");
 		int teleStyle = Shavit_GetStyleSettingInt(newstyle, "kzcheckpoints_ontele");
 		if(teleStyle > -1)
+		{
 			if(Shavit_GetReplayFrameCount(teleStyle, track) > 0)
 				g_iIntCache[client][STYLE_IDX] = teleStyle;
-
+			else
+				g_iIntCache[client][STYLE_IDX] = 0;
+		}
 		else if(startStyle > -1)
+		{
 			if(Shavit_GetReplayFrameCount(startStyle, track) > 0)
 				g_iIntCache[client][STYLE_IDX] = startStyle;
+			else
+				g_iIntCache[client][STYLE_IDX] = 0;
+		}
 	}
 	else
 		g_iIntCache[client][STYLE_IDX] = 0;
-
-	g_iIntCache[client][TRACK_IDX] = track;
 }
 
 public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track)
@@ -324,18 +333,18 @@ public int LinesMenu_Callback (Menu menu, MenuAction action, int client, int opt
 		else if(StrEqual(info, "style"))
 		{
 			SelectStyleMenu(client);
-			return 0;
+			return Plugin_Handled;
 		}
 		else if(StrEqual(info, "colors")) {
 			ShowColorOptionsMenu(client);
-			return 0;
+			return Plugin_Handled;
 		}
 		PushCookies(client);
 		ShowToggleMenu(client);
 	}
-	else if(action == MenuAction_Cancel)
+	else if(action == MenuAction_End)
 		delete menu;
-	return 0;
+	return Plugin_Handled;
 }
 
 void SelectStyleMenu(int client)
@@ -380,8 +389,12 @@ public int SelectStyleMenuHandler(Menu menu, MenuAction action, int param1, int 
 		}
 	}
 	else if(action == MenuAction_Cancel)
+	{
 		if(param2 == MenuCancel_ExitBack)
 			ShowToggleMenu(param1);
+	}
+	else if(action == MenuAction_End)
+		delete menu;
 
 	return Plugin_Handled;
 }
@@ -436,6 +449,8 @@ public int LinesColors_Callback(Menu menu, MenuAction action, int client, int op
 	else if(action == MenuAction_Cancel)
 		if(option == MenuCancel_ExitBack)
 			ShowToggleMenu(client);
+	else if(action == MenuAction_End)
+		delete menu;
 
 	return 0;
 }
