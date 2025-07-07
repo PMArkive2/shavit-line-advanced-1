@@ -288,11 +288,33 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 		g_iIntCache[client][STYLE_IDX] = 0;
 }
 
-public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track)
+public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, bool iscopy, const char[] replaypath, ArrayList frames, int preframes, int postframes, const char[] name)
 {
-    LoadReplay(style, track);
-}
+	delete g_hClosestPos[style][track];
+	delete g_hReplayFrames[style][track];
+	g_hReplayFrames[style][track] = new ArrayList(sizeof(frame_t));
 
+	if(!frames)
+		return;
+
+	frame_t aFrame;
+	bool hitGround = false;
+
+	for(int i = 0; i < frames.Length; i++)
+	{
+		frames.GetArray(i, aFrame, sizeof(frame_t));
+		if (aFrame.flags & FL_ONGROUND && !hitGround)
+			hitGround = true;
+		else
+			hitGround = false;
+
+		if (hitGround || i % SKIPFRAMES == 0)
+			g_hReplayFrames[style][track].PushArray(aFrame);
+	}
+
+	g_hClosestPos[style][track] = new ClosestPos(g_hReplayFrames[style][track], 0, 0, Shavit_GetReplayFrameCount(style, track));
+}
+	
 public void OnConfigsExecuted()
 {
 	sprite = PrecacheModel("sprites/laserbeam.vmt");
@@ -459,6 +481,7 @@ void PushDefaultSettings(int client)
 {
 	g_iIntCache[client][ENABLED] = 0;
 	g_iIntCache[client][FLATMODE] = 0;
+	g_iIntCache[client][STYLE_IDX] = 0;
 	g_iIntCache[client][DUCKCOLOR] = Purple;
 	g_iIntCache[client][NODUCKCOLOR] = Pink;
 	g_iIntCache[client][LINECOLOR] = White;
