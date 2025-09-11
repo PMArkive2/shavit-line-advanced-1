@@ -317,7 +317,7 @@ public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, i
 			g_hReplayFrames[style][track].PushArray(aFrame);
 	}
 
-	g_hClosestPos[style][track] = new ClosestPos(g_hReplayFrames[style][track], 0, 0, Shavit_GetReplayFrameCount(style, track));
+	g_hClosestPos[style][track] = new ClosestPos(g_hReplayFrames[style][track], 0, 0, frames.Length);
 }
 	
 public void OnConfigsExecuted()
